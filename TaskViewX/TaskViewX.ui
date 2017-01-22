@@ -1,0 +1,29 @@
+<UI version="4.0" >
+ <class>TaskViewXClass</class>
+ <widget class="QMainWindow" name="TaskViewXClass" >
+  <property name="objectName" >
+   <string notr="true">TaskViewXClass</string>
+  </property>
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>TaskViewX</string>
+  </property>
+  <widget class="QMenuBar" name="menuBar" />
+  <widget class="QToolBar" name="mainToolBar" />
+  <widget class="QWidget" name="centralWidget" />
+  <widget class="QStatusBar" name="statusBar" />
+ </widget>
+ <layoutDefault spacing="6" margin="11" />
+ <pixmapfunction></pixmapfunction>
+ <resources>
+   <include location="TaskViewX.qrc"/>
+ </resources>
+ <connections/>
+</UI>
