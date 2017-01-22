@@ -55,6 +55,9 @@
     <ClCompile Include="GeneratedFiles\qrc_TaskViewX.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="UiaUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="TaskViewX.h">
@@ -70,6 +73,15 @@
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_TaskViewX.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComObect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HRutil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UiaUtil.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
