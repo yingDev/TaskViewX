@@ -1,19 +1,15 @@
-#pragma once
+#include <QDebug>
+#include <QTimer>
 
-#include <memory>
-#include <uiautomation.h>
-
-#include <QtWidgets/QMainWindow>
-#include "ui_TaskViewX.h"
-#include "ComObect.h"
 #include "UiaUtil.h"
+#include "HRutil.h"
 
-class TaskViewX : public QMainWindow, public ComObject<IUIAutomationStructureChangedEventHandler, IUIAutomationEventHandler>
+class TaskViewUiaClient : public QObject, public ComObject<IUIAutomationStructureChangedEventHandler, IUIAutomationEventHandler>
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    TaskViewX(QWidget *parent = Q_NULLPTR);
+	TaskViewUiaClient(QObject *parent = Q_NULLPTR);
 
 private:
 	QTimer* _throttleTimer;
@@ -25,6 +21,4 @@ private:
 	Q_SLOT void sycTaskViews();
 	HRESULT STDMETHODCALLTYPE HandleAutomationEvent(IUIAutomationElement * pSender, EVENTID eventID) override;
 	HRESULT STDMETHODCALLTYPE HandleStructureChangedEvent(IUIAutomationElement* pSender, StructureChangeType changeType, SAFEARRAY* pRuntimeID) override;
-
-    Ui::TaskViewXClass ui;
 };

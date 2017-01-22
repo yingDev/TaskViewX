@@ -1,20 +1,19 @@
-#include "TaskViewX.h"
+﻿#include "TaskViewUiaClient.h"
 #include <QDebug>
 #include <QTimer>
 
 #include "UiaUtil.h"
 #include "HRutil.h"
 
-TaskViewX::TaskViewX(QWidget *parent)
-	: QMainWindow(parent)
+//todo: 鼠标滚轮切换虚拟桌面！
+TaskViewUiaClient::TaskViewUiaClient(QObject *parent)
+	: QObject(parent)
 {
-	ui.setupUi(this);
+	CoInitialize(nullptr);
 
 	_throttleTimer = new QTimer(this);
 	_throttleTimer->setSingleShot(true);
 	connect(_throttleTimer, SIGNAL(timeout()), this, SLOT(sycTaskViews()));
-
-	CoInitialize(nullptr);
 
 	HRESULT hr = S_OK;
 
@@ -35,7 +34,7 @@ TaskViewX::TaskViewX(QWidget *parent)
 
 }
 
-void TaskViewX::sycTaskViews()
+void TaskViewUiaClient::sycTaskViews()
 {
 	qDebug() << __FUNCTION__ << endl;
 	DWORD explorerPid;
@@ -103,7 +102,7 @@ void TaskViewX::sycTaskViews()
 }
 
 
-HRESULT TaskViewX::HandleAutomationEvent(IUIAutomationElement * pSender, EVENTID eventID)
+HRESULT TaskViewUiaClient::HandleAutomationEvent(IUIAutomationElement * pSender, EVENTID eventID)
 {
 	static int eventCount;
 	eventCount++;
@@ -122,7 +121,7 @@ HRESULT TaskViewX::HandleAutomationEvent(IUIAutomationElement * pSender, EVENTID
 		{
 			if (!_throttleTimer->isActive())
 			{
-				_throttleTimer->start(2500);
+				_throttleTimer->start(250);
 			}
 		}
 		break;
@@ -140,7 +139,7 @@ HRESULT TaskViewX::HandleAutomationEvent(IUIAutomationElement * pSender, EVENTID
 	return S_OK;
 }
 
-HRESULT TaskViewX::HandleStructureChangedEvent(IUIAutomationElement * pSender, StructureChangeType changeType, SAFEARRAY * pRuntimeID)
+HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pSender, StructureChangeType changeType, SAFEARRAY * pRuntimeID)
 {
 	static int eventCount;
 	eventCount++;
@@ -160,7 +159,7 @@ HRESULT TaskViewX::HandleStructureChangedEvent(IUIAutomationElement * pSender, S
 		{
 			if (!_throttleTimer->isActive())
 			{
-				_throttleTimer->start(2500);
+				_throttleTimer->start(250);
 			}
 		}
 

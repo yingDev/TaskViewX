@@ -1,10 +1,12 @@
-#include "TaskViewX.h"
+#include "TaskViewUiaClient.h"
 #include <QtWidgets/QApplication>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    TaskViewX w;
-    w.show();
+
+	auto client = MakeComPtr(new TaskViewUiaClient());
+
+
     return a.exec();
 }
