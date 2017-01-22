@@ -24,9 +24,6 @@ TaskViewX::TaskViewX(QWidget *parent)
 	ASSERT_HR(hr);
 	CHECK_HR(_client->GetRootElement(&_rootElem), { return; });
 
-	_throttleTimer->setSingleShot(true);
-	connect(_throttleTimer, SIGNAL(timeout()), this, SLOT(sycTaskViews()));
-
 	qDebug() << "Adding Event Handler" << endl;
 	CHECK_HR(_client->CreateCacheRequest(&_nameCacheReq), {});
 	_nameCacheReq->AddProperty(UIA_NamePropertyId);
@@ -48,9 +45,10 @@ void TaskViewX::sycTaskViews()
 
 	if (_taskViewWindows != nullptr)
 	{
+		qDebug() << "- RemoveStructureChangedEventHandlers";
+
 		for (auto& tv : UiaElemArrEnumerator(_taskViewWindows.get()))
 		{
-			qDebug() << "- RemoveStructureChangedEventHandler";
 			CHECK_HR(_client->RemoveStructureChangedEventHandler(tv.get(), this), { return; });
 		}
 	}
@@ -68,21 +66,16 @@ void TaskViewX::sycTaskViews()
 		CHECK_HR(_client->AddStructureChangedEventHandler(tv.get(), TreeScope::TreeScope_Descendants, _nameCacheReq.get(), this), { return; });
 	}
 
-	int len;
-	CHECK_HR(_taskViewWindows->get_Length(&len), { return; });
-
-	if (len > 0)
+	if (_taskViewWindows.size() > 0)
 	{
-		IUIAutomationCacheRequest* tmpCacheReq = nullptr;
-		CHECK_HR(_client->CreateCacheRequest(&tmpCacheReq), { return; });
-		auto cacheReq = MakeComPtr(tmpCacheReq);
+		ComPtr<IUIAutomationCacheRequest> cacheReq;
+		CHECK_HR(_client->CreateCacheRequest(&cacheReq), { return; });
 		cacheReq->put_TreeScope(TreeScope::TreeScope_Children);
 		cacheReq->AddProperty(UIA_NamePropertyId);
 
 		auto foundLists = GetTaskViewContentElement(_client, _taskViewWindows.get(), cacheReq.get());
 
 		qDebug() << " Task Views ==============";
-
 		for (auto& itemList : foundLists)
 		{
 			UiaElemArrPtr childrenArr;
@@ -129,7 +122,7 @@ HRESULT TaskViewX::HandleAutomationEvent(IUIAutomationElement * pSender, EVENTID
 		{
 			if (!_throttleTimer->isActive())
 			{
-				_throttleTimer->start(250);
+				_throttleTimer->start(2500);
 			}
 		}
 		break;
@@ -167,7 +160,7 @@ HRESULT TaskViewX::HandleStructureChangedEvent(IUIAutomationElement * pSender, S
 		{
 			if (!_throttleTimer->isActive())
 			{
-				_throttleTimer->start(250);
+				_throttleTimer->start(2500);
 			}
 		}
 
