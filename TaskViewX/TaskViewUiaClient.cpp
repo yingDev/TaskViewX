@@ -56,16 +56,8 @@ Q_SLOT void TaskViewUiaClient::pollWindowFromPoint()
 
 void TaskViewUiaClient::sycTaskViews()
 {
-	auto hwnd = WindowFromPoint({ 100,100 });
-	TCHAR clsName[128];
-	GetClassName(hwnd, clsName, 128);
-
-	qDebug() << "WindowFromPoint = " << QString::fromWCharArray( clsName );
-	if (wcsicmp(clsName, L"MultitaskingViewFrame") != 0)
-	{
-		qDebug() << "MultitaskingViewFrame not found";
+	if (!IsShowing())
 		return notifyDisappearing();
-	}
 
 	qDebug() << __FUNCTION__ << endl;
 	/*DWORD explorerPid;
@@ -73,6 +65,8 @@ void TaskViewUiaClient::sycTaskViews()
 	{
 		return notifyDisappearing();
 	}*/
+
+	_currentItems.clear();
 
 	if (_taskViewWindows != nullptr)
 	{
@@ -110,14 +104,14 @@ void TaskViewUiaClient::sycTaskViews()
 		CHECK_HR(_client->CreateCacheRequest(&cacheReq), { return notifyDisappearing(); });
 		cacheReq->put_TreeScope(TreeScope::TreeScope_Children);
 		cacheReq->AddProperty(UIA_NamePropertyId);
+		cacheReq->AddPattern(UIA_InvokePatternId);
 		cacheReq->AddProperty(UIA_BoundingRectanglePropertyId);
 
 		auto foundLists = GetTaskViewContentElement(_client, _taskViewWindows.get(), cacheReq.get());
 		if (foundLists.size() <= 0)
 			return notifyDisappearing();
 
-		std::vector<TaskViewItem> items;
-		items.reserve(foundLists.size());
+		_currentItems.reserve(foundLists.size());
 		int index = 0;
 
 		qDebug() << " Task Views ==============";
@@ -148,14 +142,14 @@ void TaskViewUiaClient::sycTaskViews()
 
 				CHECK_HR(elem->get_CurrentBoundingRectangle(&rect), { return notifyDisappearing(); });
 
-				items.push_back({index++, nameStr, rect  });
+				_currentItems.push_back({index++, nameStr, rect , std::move( elem )});
 
 				//qDebug() << "Rect= " << "[" << rect.top << ", " << rect.right << ", " << rect.bottom << ", " << rect.left << "]";
 			}
 			qDebug() << "";
 		}
 
-		emit TaskViewChanged(items);
+		emit TaskViewChanged(_currentItems);
 
 
 		qDebug() << "--------------" << endl;
@@ -295,4 +289,37 @@ void TaskViewUiaClient::notifyDisappearing()
 	_taskViewWindows = nullptr;
 
 	emit TaskViewDisappeared();
+}
+
+
+bool TaskViewUiaClient::IsShowing()
+{
+	auto hwnd = WindowFromPoint({ 100,100 });
+	TCHAR clsName[128];
+	GetClassName(hwnd, clsName, 128);
+
+	if (wcscmp(clsName, L"MultitaskingViewFrame") == 0)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void TaskViewUiaClient::SwitchTo(int index)
+{
+	if (index >= 0 && index < _currentItems.size())
+	{
+		if (!IsShowing())
+			return;
+		ComPtr<IUIAutomationInvokePattern> pattern;
+		CHECK_HR(_currentItems[index].element->GetCachedPatternAs(UIA_InvokePatternId, IID_IUIAutomationInvokePattern, (void**)&pattern), { return; });
+		CHECK_HR(pattern->Invoke(), {});
+	}
+
+}
+
+void TaskViewUiaClient::Dismiss()
+{
+	notifyDisappearing();
 }

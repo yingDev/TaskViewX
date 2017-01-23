@@ -8,11 +8,14 @@
 #include "UiaUtil.h"
 #include "HRutil.h"
 
-struct TaskViewItem
+class TaskViewItem
 {
+public:
 	int index;
 	QString name;
 	RECT rect;
+
+	ComPtr<IUIAutomationElement> element;
 };
 
 
@@ -23,7 +26,7 @@ class TaskViewUiaClient : public QObject, public ComObject<IUIAutomationStructur
 public:
 	TaskViewUiaClient(QObject *parent = Q_NULLPTR);
 
-	bool IsTaskViewShowing();
+	bool IsShowing();
 	void Show();
 	void SwitchTo(int index);
 	void Dismiss();
@@ -40,6 +43,7 @@ private:
 	UiaElemArrPtr _taskViewWindows;
 	ComPtr<IUIAutomationElement> _rootElem;
 	ComPtr<IUIAutomationCacheRequest> _nameCacheReq;
+	std::vector<TaskViewItem> _currentItems;
 
 	Q_SLOT void sycTaskViews();
 	Q_SLOT void pollWindowFromPoint();
