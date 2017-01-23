@@ -85,6 +85,10 @@ void TaskViewUiaClient::sycTaskViews()
 		if (foundLists.size() <= 0)
 			return notifyDisappearing();
 
+		std::vector<TaskViewItem> items;
+		items.reserve(foundLists.size());
+		int index = 0;
+
 		qDebug() << " Task Views ==============";
 		for (auto& itemList : foundLists)
 		{
@@ -97,21 +101,30 @@ void TaskViewUiaClient::sycTaskViews()
 			if (childrenArr == nullptr)
 				continue;
 
-			qDebug() << "Running Applications: " << childrenArr.size();
+			//qDebug() << "Running Applications: " << childrenArr.size();
 
 			for (auto& elem : childrenArr)
 			{
 				BSTR name = nullptr;
 				CHECK_HR(elem->get_CachedName(&name), { return notifyDisappearing(); });
-				qDebug() << QString::fromWCharArray(name) << "  ";
 				SysFreeString(name);
+
+				QString nameStr = QString::fromWCharArray(name);
+				qDebug() << nameStr << "  ";
 
 				RECT rect;
 				CHECK_HR(elem->get_CachedBoundingRectangle(&rect), { return notifyDisappearing(); });
-				qDebug() << "Rect= " << "[" << rect.top << ", " << rect.right << ", " << rect.bottom << ", " << rect.left << "]";
+
+				items.push_back({index++, nameStr, rect  });
+
+				//qDebug() << "Rect= " << "[" << rect.top << ", " << rect.right << ", " << rect.bottom << ", " << rect.left << "]";
 			}
 			qDebug() << "";
 		}
+
+		emit TaskViewChanged(items);
+
+
 		qDebug() << "--------------" << endl;
 	}
 	else
@@ -138,7 +151,7 @@ HRESULT TaskViewUiaClient::HandleAutomationEvent(IUIAutomationElement * pSender,
 		{
 			if (!_throttleTimer->isActive())
 			{
-				_throttleTimer->start(250);
+				_throttleTimer->start(100);
 			}
 		}
 		break;
@@ -160,7 +173,7 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 {
 	static int eventCount;
 	eventCount++;
-
+	qDebug() << "pSender = " << pSender;
 	BSTR name = nullptr;
 	CHECK_HR(pSender->get_CachedName(&name), { return S_OK; } );
 	SysFreeString(name);
@@ -168,16 +181,26 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 	switch (changeType)
 	{
 	case StructureChangeType_ChildAdded:
-		wprintf(L">> Structure Changed: ChildAdded! (count: %d) ", eventCount);
+		wprintf(L">> Structure Changed: ChildAdded! (count: %d) \n", eventCount);
 		//note: fallthru
 	case StructureChangeType_ChildRemoved:
-		wprintf(L">> Structure Changed: ChildRemoved! (count: %d) ", eventCount);
+		wprintf(L">> Structure Changed: ChildRemoved! (count: %d) \n", eventCount);
 		//if (wcsicmp(name, L"Task View") == 0)
 		{
-			if (!_throttleTimer->isActive())
+			//if (wcsicmp(name, L"Running Applications") == 0)
 			{
-				_throttleTimer->start(250);
+				//qDebug() << "Running Applications Changed";
+				if (!_throttleTimer->isActive())
+				{
+					_throttleTimer->start(100);
+				}
 			}
+			//else
+			{
+				//qDebug() << "Task View is Disappearing";
+				//notifyDisappearing();
+			}
+
 		}
 
 		break;

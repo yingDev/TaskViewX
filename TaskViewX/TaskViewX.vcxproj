@@ -30,10 +30,10 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(ProgramW6432)\_TaskViewX_Tem\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(ProgramW6432)\_TaskViewX_Tem\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -53,7 +53,9 @@
       <UACUIAccess>true</UACUIAccess>
     </Link>
     <PostBuildEvent>
-      <Command>signtool sign /v /f "$(SolutionDir)YingDevSPC.pfx" "$(TargetPath)"</Command>
+      <Command>signtool sign /v /f "$(SolutionDir)YingDevSPC.pfx" "$(TargetPath)"
+set VCINSTALLDIR=$(VCInstallDir)
+windeployqt.exe  "$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -73,7 +75,9 @@
       <UACUIAccess>true</UACUIAccess>
     </Link>
     <PostBuildEvent>
-      <Command>signtool sign /v /f "$(SolutionDir)YingDevSPC.pfx" "$(TargetPath)"</Command>
+      <Command>signtool sign /v /f "$(SolutionDir)YingDevSPC.pfx" "$(TargetPath)"
+set VCINSTALLDIR=$(VCInstallDir)
+windeployqt.exe  "$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
