@@ -45,28 +45,28 @@ auto GetTaskViewContentElement(IUIAutomation* client, IUIAutomationElementArray*
 	return foundElems;
 }
 
-auto GetTopLevelWindowsByClassAndPid(IUIAutomation* client, LPWSTR className, DWORD pid) -> UiaElemArrPtr
+auto GetTopLevelWindowsByClassAndPid(IUIAutomation* client, LPWSTR className/*, DWORD pid*/) -> UiaElemArrPtr
 {
-	if (className == nullptr || pid < 0)
+	if (className == nullptr)// || pid < 0)
 		return nullptr;
 
 	ComPtr<IUIAutomationElement> rootElem;
-	ComPtr<IUIAutomationCondition> condPid, condClsName, condAll;
+	ComPtr<IUIAutomationCondition> /*condPid,*/ condClsName;/* , condAll*/;
 
 	CHECK_HR(client->GetRootElement(&rootElem), return nullptr);
 
 	if (rootElem == nullptr)
 		return nullptr;
 
-	auto varPid = VARIANT_GUARD((int)pid);
+	/*auto varPid = VARIANT_GUARD((int)pid);
 	CHECK_HR(client->CreatePropertyCondition(UIA_ProcessIdPropertyId, varPid.var, &condPid), return nullptr);
-
+	*/
 	auto varClassName = VARIANT_GUARD(SysAllocString(className));
 	CHECK_HR(client->CreatePropertyCondition(UIA_ClassNamePropertyId, varClassName.var, &condClsName), return nullptr);
-	CHECK_HR(client->CreateAndCondition(condPid.get(), condClsName.get(), &condAll), return nullptr);
+	//CHECK_HR(client->CreateAndCondition(condPid.get(), condClsName.get(), &condAll), return nullptr);
 
 	UiaElemArrPtr outArr;
-	CHECK_HR(rootElem->FindAll(TreeScope::TreeScope_Children, condAll.get(), &outArr), return nullptr);
+	CHECK_HR(rootElem->FindAll(TreeScope::TreeScope_Children, condClsName.get(), &outArr), return nullptr);
 	return outArr;
 }
 

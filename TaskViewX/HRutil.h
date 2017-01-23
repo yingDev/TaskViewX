@@ -22,7 +22,7 @@ inline HRESULT& LAST_HRULST()
 	LAST_HRULST() = block;\
 	if (FAILED(LAST_HRULST()))\
 	{\
-		std::cerr << __FILE__ << ": " << __LINE__ << '@' << __FUNCTION__ << ": " << _com_error(LAST_HRULST()).ErrorMessage() << std::endl;\
+		std::cerr << "CHECK_HR ERROR: " __FILE__ << ": " << __LINE__ << '@' << __FUNCTION__ << ": " << _com_error(LAST_HRULST()).ErrorMessage() << std::endl;\
 		onFailed;\
 	}\
 }

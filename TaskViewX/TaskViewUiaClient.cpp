@@ -15,6 +15,12 @@ TaskViewUiaClient::TaskViewUiaClient(QObject *parent)
 	_throttleTimer->setSingleShot(true);
 	connect(_throttleTimer, SIGNAL(timeout()), this, SLOT(sycTaskViews()));
 
+	_tvPollTimer = new QTimer(this);
+	_tvPollTimer->setSingleShot(false);
+	_tvPollTimer->setInterval(33);
+	connect(_tvPollTimer, SIGNAL(timeout()), this, SLOT(pollWindowFromPoint()));
+	//_tvPollTimer->start();
+
 	HRESULT hr = S_OK;
 
 	hr = CoCreateInstance(CLSID_CUIAutomation, nullptr,
@@ -30,18 +36,43 @@ TaskViewUiaClient::TaskViewUiaClient(QObject *parent)
 	CHECK_HR(_client->AddAutomationEventHandler(UIA_Window_WindowOpenedEventId, _rootElem.get(), TreeScope::TreeScope_Children, _nameCacheReq.get(), this), { exit(-2); });
 	//CHECK_HR(_client->AddAutomationEventHandler(UIA_Window_WindowClosedEventId, _rootElem.get(), TreeScope::TreeScope_Children, nullptr, this), { exit(-2); });
 
-	//CHECK_HR(_client->AddStructureChangedEventHandler(_rootElem.get(), TreeScope::TreeScope_Children, nullptr, this), { return; });
+	//CHECK_HR(_client->AddStructureChangedEventHandler(_rootElem.get(), TreeScope::TreeScope_Element, nullptr, this), { return; });
 
+}
+
+Q_SLOT void TaskViewUiaClient::pollWindowFromPoint()
+{
+	auto hwnd = WindowFromPoint({ 100,100 });
+	TCHAR clsName[128];
+	GetClassName(hwnd, clsName, 128);
+
+	//qDebug() << "WindowFromPoint = " << QString::fromWCharArray(clsName);
+	if (wcsicmp(clsName, L"MultitaskingViewFrame") != 0)
+	{
+		//qDebug() << "MultitaskingViewFrame not found";
+		return notifyDisappearing();
+	}
 }
 
 void TaskViewUiaClient::sycTaskViews()
 {
+	auto hwnd = WindowFromPoint({ 100,100 });
+	TCHAR clsName[128];
+	GetClassName(hwnd, clsName, 128);
+
+	qDebug() << "WindowFromPoint = " << QString::fromWCharArray( clsName );
+	if (wcsicmp(clsName, L"MultitaskingViewFrame") != 0)
+	{
+		qDebug() << "MultitaskingViewFrame not found";
+		return notifyDisappearing();
+	}
+
 	qDebug() << __FUNCTION__ << endl;
-	DWORD explorerPid;
+	/*DWORD explorerPid;
 	if (! GetExplorerPid(&explorerPid))
 	{
 		return notifyDisappearing();
-	}
+	}*/
 
 	if (_taskViewWindows != nullptr)
 	{
@@ -53,7 +84,7 @@ void TaskViewUiaClient::sycTaskViews()
 		}
 	}
 
-	auto newTaskViewWindows = GetTopLevelWindowsByClassAndPid(_client, L"MultitaskingViewFrame", explorerPid);
+	auto newTaskViewWindows = GetTopLevelWindowsByClassAndPid(_client, L"MultitaskingViewFrame");
 	auto isOldOnesExists = (_taskViewWindows != nullptr);
 	_taskViewWindows = std::move(newTaskViewWindows);
 
@@ -93,15 +124,15 @@ void TaskViewUiaClient::sycTaskViews()
 		for (auto& itemList : foundLists)
 		{
 			UiaElemArrPtr childrenArr;
-			ComPtr<IUIAutomationCondition> condTrue;
+			//ComPtr<IUIAutomationCondition> condTrue;
 
-			CHECK_HR(_client->CreateTrueCondition(&condTrue), { return notifyDisappearing(); });
+			//CHECK_HR(_client->CreateTrueCondition(&condTrue), { return notifyDisappearing(); });
 			CHECK_HR(itemList->GetCachedChildren(&childrenArr), { return notifyDisappearing(); });
 
 			if (childrenArr == nullptr)
 				continue;
 
-			//qDebug() << "Running Applications: " << childrenArr.size();
+			qDebug() << "Running Applications: " << childrenArr.size();
 
 			for (auto& elem : childrenArr)
 			{
@@ -113,7 +144,9 @@ void TaskViewUiaClient::sycTaskViews()
 				qDebug() << nameStr << "  ";
 
 				RECT rect;
-				CHECK_HR(elem->get_CachedBoundingRectangle(&rect), { return notifyDisappearing(); });
+				//CHECK_HR(elem->get_CachedBoundingRectangle(&rect), { return notifyDisappearing(); });
+
+				CHECK_HR(elem->get_CurrentBoundingRectangle(&rect), { return notifyDisappearing(); });
 
 				items.push_back({index++, nameStr, rect  });
 
@@ -161,7 +194,7 @@ HRESULT TaskViewUiaClient::HandleAutomationEvent(IUIAutomationElement * pSender,
 		break;
 
 	default:
-		wprintf(L">> Event (%d) Received! (count: %d)\n", eventID, eventCount);
+		//wprintf(L">> Event (%d) Received! (count: %d)\n", eventID, eventCount);
 		break;
 	}
 
@@ -173,37 +206,56 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 {
 	static int eventCount;
 	eventCount++;
-	qDebug() << "pSender = " << pSender;
-	BSTR name = nullptr;
-	CHECK_HR(pSender->get_CachedName(&name), { return S_OK; } );
-	SysFreeString(name);
+	//qDebug() << "pSender = " << pSender;
+
+	//BSTR name = nullptr;
+	//CHECK_HR(pSender->get_CachedName(&name), { /*return S_OK;*/ });
 
 	switch (changeType)
 	{
 	case StructureChangeType_ChildAdded:
 		wprintf(L">> Structure Changed: ChildAdded! (count: %d) \n", eventCount);
-		//note: fallthru
-	case StructureChangeType_ChildRemoved:
-		wprintf(L">> Structure Changed: ChildRemoved! (count: %d) \n", eventCount);
-		//if (wcsicmp(name, L"Task View") == 0)
-		{
-			//if (wcsicmp(name, L"Running Applications") == 0)
-			{
-				//qDebug() << "Running Applications Changed";
-				if (!_throttleTimer->isActive())
-				{
-					_throttleTimer->start(100);
-				}
-			}
-			//else
-			{
-				//qDebug() << "Task View is Disappearing";
-				//notifyDisappearing();
-			}
 
+		if (!_throttleTimer->isActive())
+		{
+			_throttleTimer->start(60);
 		}
 
 		break;
+	case StructureChangeType_ChildRemoved:
+	{
+		wprintf(L">> Structure Changed: ChildRemoved! (count: %d) \n", eventCount);
+
+		/*qDebug() << " Sender = " << QString::fromWCharArray(name);
+		if (name == nullptr || wcsicmp(name, L"Task View") == 0)
+		{
+			notifyDisappearing();
+			break;
+		}*/
+
+		if (_taskViewWindows != nullptr)
+		{
+			for (auto& tv : _taskViewWindows)
+			{
+				BOOL same = false;
+				CHECK_HR(_client->CompareElements(pSender, tv.get(), &same), {});
+				if (same)
+				{
+					qDebug() << "sender is a TaskView, so ... notifyDisappearing()";
+					notifyDisappearing();
+					break;
+				}
+			}
+		}
+
+
+		if (!_throttleTimer->isActive())
+		{
+			_throttleTimer->start(260);
+		}
+
+		break;
+	}
 
 	case StructureChangeType_ChildrenInvalidated:
 	{
@@ -230,13 +282,17 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 		wprintf(L">> Structure Changed: ChildrenReordered! (count: %d) ", eventCount);
 		break;
 	}
-	qDebug() << " Sender = " << QString::fromWCharArray(name);
 
+	//if (name)
+	{
+		//SysFreeString(name);
+	}
 	return S_OK;
 }
 
 void TaskViewUiaClient::notifyDisappearing()
 {
-	emit TaskViewDisappeared();
 	_taskViewWindows = nullptr;
+
+	emit TaskViewDisappeared();
 }

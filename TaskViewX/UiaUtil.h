@@ -101,7 +101,7 @@ inline auto MakeComPtr(IUIAutomationElementArray* elem)
 	return UiaElemArrPtr(elem);
 }
 
-auto GetTopLevelWindowsByClassAndPid(IUIAutomation* client, LPWSTR className, DWORD pid)->UiaElemArrPtr;
+auto GetTopLevelWindowsByClassAndPid(IUIAutomation* client, LPWSTR className)->UiaElemArrPtr;
 auto GetExplorerPid(DWORD* outPid)->BOOL;
 auto GetTaskViewContentElement(IUIAutomation* client, IUIAutomationElementArray* taskViews, IUIAutomationCacheRequest* cacheReq)->std::vector<ComPtr<IUIAutomationElement>>;
 
