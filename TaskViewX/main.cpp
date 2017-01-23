@@ -114,7 +114,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	if (gBlockingInput)
 	{
 		qDebug() << "** Blocking Input";
-		return 0;
+		return -1;
 	}
 
 	if (nCode < 0)
@@ -173,15 +173,22 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 				auto* label = gLabelWindows.at(index);
 				label->setColors(QColor(255, 95, 10), Qt::white);
+				QTimer::singleShot(50, [=]() 
+				{
+					gClient->SwitchTo(index);
+				});
 
-				gClient->SwitchTo(index);
-
-				QTimer::singleShot(100, [=]()
+				QTimer::singleShot(150, [=]()
 				{
 					gClient->Dismiss();
-					gBlockingInput = false;
-
 				});
+
+				QTimer::singleShot(550, [=]()
+				{
+					gBlockingInput = false;
+				});
+
+				return -1;
 			}
 			break;
 	}

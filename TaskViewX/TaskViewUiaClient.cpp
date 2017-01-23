@@ -286,7 +286,8 @@ void TaskViewUiaClient::SwitchTo(int index)
 			return;
 		ComPtr<IUIAutomationInvokePattern> pattern;
 		CHECK_HR(_currentItems[index].element->GetCachedPatternAs(UIA_InvokePatternId, IID_IUIAutomationInvokePattern, (void**)&pattern), { return; });
-		CHECK_HR(pattern->Invoke(), {});
+		if(pattern)
+			CHECK_HR(pattern->Invoke(), {});
 	}
 
 }
@@ -299,7 +300,8 @@ void TaskViewUiaClient::Dismiss()
 		{
 			ComPtr<IUIAutomationWindowPattern> pattern;
 			CHECK_HR(win->GetCurrentPatternAs(UIA_WindowPatternId, IID_IUIAutomationWindowPattern, (void**)&pattern), { return; });
-			CHECK_HR(pattern->Close(), {});
+			if(pattern)
+				CHECK_HR(pattern->Close(), {});
 		}
 		notifyDisappearing();
 
