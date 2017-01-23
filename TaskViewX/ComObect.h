@@ -162,6 +162,11 @@ struct VARIANT_GUARD
 {
 	VARIANT var;
 
+	VARIANT_GUARD()
+	{
+		VariantInit(&var);
+	}
+
 	VARIANT_GUARD(int i)
 	{
 		VariantInit(&var);

@@ -67,7 +67,7 @@ struct UiaElemArrPtr : public ComPtr<IUIAutomationElementArray>
 {
 	using ComPtr<IUIAutomationElementArray>::ComPtr;
 
-	UiaElemArrPtr() = default;
+	UiaElemArrPtr() : ComPtr() {}
 
 	UiaElemArrPtr(ComPtr<IUIAutomationElementArray>&& from)
 	{

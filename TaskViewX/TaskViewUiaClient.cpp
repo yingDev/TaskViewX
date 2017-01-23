@@ -38,8 +38,9 @@ void TaskViewUiaClient::sycTaskViews()
 {
 	qDebug() << __FUNCTION__ << endl;
 	DWORD explorerPid;
-	if (GetExplorerPid(&explorerPid))
+	if (! GetExplorerPid(&explorerPid))
 	{
+		return notifyDisappearing();
 	}
 
 	if (_taskViewWindows != nullptr)
@@ -48,31 +49,41 @@ void TaskViewUiaClient::sycTaskViews()
 
 		for (auto& tv : UiaElemArrEnumerator(_taskViewWindows.get()))
 		{
-			CHECK_HR(_client->RemoveStructureChangedEventHandler(tv.get(), this), { return; });
+			CHECK_HR(_client->RemoveStructureChangedEventHandler(tv.get(), this), { return notifyDisappearing(); });
 		}
 	}
 
-	_taskViewWindows = GetTopLevelWindowsByClassAndPid(_client, L"MultitaskingViewFrame", explorerPid);
+	auto newTaskViewWindows = GetTopLevelWindowsByClassAndPid(_client, L"MultitaskingViewFrame", explorerPid);
+	auto isOldOnesExists = (_taskViewWindows != nullptr);
+	_taskViewWindows = std::move(newTaskViewWindows);
+
+	if(!isOldOnesExists)
+		emit TaskViewShown();
+
 	if (_taskViewWindows == nullptr || _taskViewWindows.size() <= 0)
 	{
 		qDebug() << "Task Views not Showing.";
-		return;
+		_taskViewWindows = nullptr;
+		return notifyDisappearing();
 	}
 
 	for (auto& tv : _taskViewWindows)
 	{
 		qDebug() << "- AddStructureChangedEventHandler";
-		CHECK_HR(_client->AddStructureChangedEventHandler(tv.get(), TreeScope::TreeScope_Descendants, _nameCacheReq.get(), this), { return; });
+		CHECK_HR(_client->AddStructureChangedEventHandler(tv.get(), TreeScope::TreeScope_Descendants, _nameCacheReq.get(), this), { return notifyDisappearing(); });
 	}
 
 	if (_taskViewWindows.size() > 0)
 	{
 		ComPtr<IUIAutomationCacheRequest> cacheReq;
-		CHECK_HR(_client->CreateCacheRequest(&cacheReq), { return; });
+		CHECK_HR(_client->CreateCacheRequest(&cacheReq), { return notifyDisappearing(); });
 		cacheReq->put_TreeScope(TreeScope::TreeScope_Children);
 		cacheReq->AddProperty(UIA_NamePropertyId);
+		cacheReq->AddProperty(UIA_BoundingRectanglePropertyId);
 
 		auto foundLists = GetTaskViewContentElement(_client, _taskViewWindows.get(), cacheReq.get());
+		if (foundLists.size() <= 0)
+			return notifyDisappearing();
 
 		qDebug() << " Task Views ==============";
 		for (auto& itemList : foundLists)
@@ -80,8 +91,8 @@ void TaskViewUiaClient::sycTaskViews()
 			UiaElemArrPtr childrenArr;
 			ComPtr<IUIAutomationCondition> condTrue;
 
-			CHECK_HR(_client->CreateTrueCondition(&condTrue), { return; });
-			CHECK_HR(itemList->GetCachedChildren(&childrenArr), { return; });
+			CHECK_HR(_client->CreateTrueCondition(&condTrue), { return notifyDisappearing(); });
+			CHECK_HR(itemList->GetCachedChildren(&childrenArr), { return notifyDisappearing(); });
 
 			if (childrenArr == nullptr)
 				continue;
@@ -91,14 +102,20 @@ void TaskViewUiaClient::sycTaskViews()
 			for (auto& elem : childrenArr)
 			{
 				BSTR name = nullptr;
-				CHECK_HR(elem->get_CachedName(&name), { return; });
+				CHECK_HR(elem->get_CachedName(&name), { return notifyDisappearing(); });
 				qDebug() << QString::fromWCharArray(name) << "  ";
 				SysFreeString(name);
+
+				RECT rect;
+				CHECK_HR(elem->get_CachedBoundingRectangle(&rect), { return notifyDisappearing(); });
+				qDebug() << "Rect= " << "[" << rect.top << ", " << rect.right << ", " << rect.bottom << ", " << rect.left << "]";
 			}
 			qDebug() << "";
 		}
 		qDebug() << "--------------" << endl;
 	}
+	else
+		return notifyDisappearing();
 }
 
 
@@ -145,7 +162,7 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 	eventCount++;
 
 	BSTR name = nullptr;
-	CHECK_HR(pSender->get_CachedName(&name), { return S_OK; });
+	CHECK_HR(pSender->get_CachedName(&name), { return S_OK; } );
 	SysFreeString(name);
 
 	switch (changeType)
@@ -193,4 +210,10 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 	qDebug() << " Sender = " << QString::fromWCharArray(name);
 
 	return S_OK;
+}
+
+void TaskViewUiaClient::notifyDisappearing()
+{
+	emit TaskViewDisappeared();
+	_taskViewWindows = nullptr;
 }
