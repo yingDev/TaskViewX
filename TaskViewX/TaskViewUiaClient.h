@@ -38,7 +38,6 @@ signals:
 
 private:
 	QTimer* _throttleTimer;
-	QTimer* _tvPollTimer;
 	IUIAutomation* _client;
 	UiaElemArrPtr _taskViewWindows;
 	ComPtr<IUIAutomationElement> _rootElem;
@@ -46,7 +45,6 @@ private:
 	std::vector<TaskViewItem> _currentItems;
 
 	Q_SLOT void sycTaskViews();
-	Q_SLOT void pollWindowFromPoint();
 
 	HRESULT STDMETHODCALLTYPE HandleAutomationEvent(IUIAutomationElement * pSender, EVENTID eventID) override;
 	HRESULT STDMETHODCALLTYPE HandleStructureChangedEvent(IUIAutomationElement* pSender, StructureChangeType changeType, SAFEARRAY* pRuntimeID) override;

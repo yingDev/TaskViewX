@@ -15,12 +15,6 @@ TaskViewUiaClient::TaskViewUiaClient(QObject *parent)
 	_throttleTimer->setSingleShot(true);
 	connect(_throttleTimer, SIGNAL(timeout()), this, SLOT(sycTaskViews()));
 
-	_tvPollTimer = new QTimer(this);
-	_tvPollTimer->setSingleShot(false);
-	_tvPollTimer->setInterval(33);
-	connect(_tvPollTimer, SIGNAL(timeout()), this, SLOT(pollWindowFromPoint()));
-	//_tvPollTimer->start();
-
 	HRESULT hr = S_OK;
 
 	hr = CoCreateInstance(CLSID_CUIAutomation, nullptr,
@@ -35,23 +29,8 @@ TaskViewUiaClient::TaskViewUiaClient(QObject *parent)
 
 	CHECK_HR(_client->AddAutomationEventHandler(UIA_Window_WindowOpenedEventId, _rootElem.get(), TreeScope::TreeScope_Children, _nameCacheReq.get(), this), { exit(-2); });
 	//CHECK_HR(_client->AddAutomationEventHandler(UIA_Window_WindowClosedEventId, _rootElem.get(), TreeScope::TreeScope_Children, nullptr, this), { exit(-2); });
-
 	//CHECK_HR(_client->AddStructureChangedEventHandler(_rootElem.get(), TreeScope::TreeScope_Element, nullptr, this), { return; });
 
-}
-
-Q_SLOT void TaskViewUiaClient::pollWindowFromPoint()
-{
-	auto hwnd = WindowFromPoint({ 100,100 });
-	TCHAR clsName[128];
-	GetClassName(hwnd, clsName, 128);
-
-	//qDebug() << "WindowFromPoint = " << QString::fromWCharArray(clsName);
-	if (wcsicmp(clsName, L"MultitaskingViewFrame") != 0)
-	{
-		//qDebug() << "MultitaskingViewFrame not found";
-		return notifyDisappearing();
-	}
 }
 
 void TaskViewUiaClient::sycTaskViews()
@@ -118,9 +97,6 @@ void TaskViewUiaClient::sycTaskViews()
 		for (auto& itemList : foundLists)
 		{
 			UiaElemArrPtr childrenArr;
-			//ComPtr<IUIAutomationCondition> condTrue;
-
-			//CHECK_HR(_client->CreateTrueCondition(&condTrue), { return notifyDisappearing(); });
 			CHECK_HR(itemList->GetCachedChildren(&childrenArr), { return notifyDisappearing(); });
 
 			if (childrenArr == nullptr)
@@ -138,9 +114,7 @@ void TaskViewUiaClient::sycTaskViews()
 				qDebug() << nameStr << "  ";
 
 				RECT rect;
-				//CHECK_HR(elem->get_CachedBoundingRectangle(&rect), { return notifyDisappearing(); });
-
-				CHECK_HR(elem->get_CurrentBoundingRectangle(&rect), { return notifyDisappearing(); });
+				CHECK_HR(elem->get_CachedBoundingRectangle(&rect), { return notifyDisappearing(); });
 
 				_currentItems.push_back({index++, nameStr, rect , std::move( elem )});
 
@@ -150,8 +124,6 @@ void TaskViewUiaClient::sycTaskViews()
 		}
 
 		emit TaskViewChanged(_currentItems);
-
-
 		qDebug() << "--------------" << endl;
 	}
 	else
@@ -321,5 +293,15 @@ void TaskViewUiaClient::SwitchTo(int index)
 
 void TaskViewUiaClient::Dismiss()
 {
-	notifyDisappearing();
+	if (_taskViewWindows != nullptr)
+	{
+		for (auto& win : _taskViewWindows)
+		{
+			ComPtr<IUIAutomationWindowPattern> pattern;
+			CHECK_HR(win->GetCurrentPatternAs(UIA_WindowPatternId, IID_IUIAutomationWindowPattern, (void**)&pattern), { return; });
+			CHECK_HR(pattern->Close(), {});
+		}
+		notifyDisappearing();
+
+	}
 }

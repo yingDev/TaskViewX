@@ -1,4 +1,5 @@
 ﻿#include <memory>
+#include <chrono>
 
 #include <QtWidgets/QApplication>
 #include <QMainWindow>
@@ -24,7 +25,6 @@ int main(int argc, char *argv[])
 
 	gLabelWindows = std::vector<LabelWindow*>();
 	gClient = MakeComPtr(new TaskViewUiaClient());
-
 
 	//todo: ...
 	gKbdHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, nullptr, 0);
@@ -117,36 +117,73 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 		return 0;
 	}
 
-	if (nCode < 0 || !gClient->IsShowing())
+	if (nCode < 0)
 		return CallNextHookEx(gKbdHook, nCode, wParam, lParam);
 
 	auto* data = (KBDLLHOOKSTRUCT*)lParam;
 
+	//todo: refactor... extract
+	static ULONG_PTR simulationTag = 1234;
+	if (data->dwExtraInfo == simulationTag)
+	{
+		qDebug() << "Simulated Key.";
+	}
+	if (data->dwExtraInfo != simulationTag && wParam == WM_KEYUP && (data->vkCode == VK_LSHIFT || data->vkCode == VK_RSHIFT))
+	{
+		qDebug() << "VK_LSHIFT";
+
+		static auto lastTimePress = std::chrono::system_clock::time_point().time_since_epoch();
+		auto now = std::chrono::system_clock::now().time_since_epoch();
+
+		std::cout << std::chrono::duration_cast<std::chrono::seconds> (now - lastTimePress).count() << " sec" << std::endl;
+
+		if ((now - lastTimePress) < std::chrono::milliseconds(300))
+		{
+			qDebug() << "Sending Win+Tab";
+			QTimer::singleShot(0, []() 
+			{
+				//simulate Win+Tab
+				keybd_event(VK_LWIN, 0x5B, 0, simulationTag);
+				keybd_event(VK_TAB, 0x8F, 0, simulationTag);
+				keybd_event(VK_TAB, 0x8F, KEYEVENTF_KEYUP, simulationTag);
+				keybd_event(VK_LWIN, 0x5B, KEYEVENTF_KEYUP, simulationTag);
+			});
+
+			lastTimePress = std::chrono::system_clock::time_point().time_since_epoch();
+			return CallNextHookEx(gKbdHook, -1, wParam, lParam);
+		}
+			
+		lastTimePress = now;
+	}
+
+	if(!gClient->IsShowing())
+		return CallNextHookEx(gKbdHook, nCode, wParam, lParam);
+
 	switch (wParam)
 	{
-	case WM_KEYDOWN:
-	{
-		auto key = (char)data->vkCode;
-		qDebug() << "WM_KEYDOWN: " << key;
-		auto index = LETTERS.indexOf(QChar(key));
-		qDebug() << "Index= " << index;
-		if (index >= 0)
+		case WM_KEYDOWN:
 		{
-			gBlockingInput = true;
-			auto* label = gLabelWindows.at(index);
-			label->setColors(QColor(255, 95, 10), Qt::white);
-			QTimer::singleShot(150, [=]()
+			auto key = (char)data->vkCode;
+			qDebug() << "WM_KEYDOWN: " << key;
+			auto index = LETTERS.indexOf(QChar(key));
+			qDebug() << "Index= " << index;
+			if (index >= 0)
 			{
-				gClient->SwitchTo(index);
-				gClient->Dismiss();
+				gBlockingInput = true;
 
-				QTimer::singleShot(500, []()
+				auto* label = gLabelWindows.at(index);
+				label->setColors(QColor(255, 95, 10), Qt::white);
+
+				gClient->SwitchTo(index);
+
+				QTimer::singleShot(100, [=]()
 				{
+					gClient->Dismiss();
 					gBlockingInput = false;
+
 				});
-			});
-		}
-		break;
+			}
+			break;
 	}
 
 	case WM_KEYUP:
