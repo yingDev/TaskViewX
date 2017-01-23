@@ -227,7 +227,7 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 			break;
 		}*/
 
-		if (_taskViewWindows != nullptr)
+		/*if (_taskViewWindows != nullptr)
 		{
 			for (auto& tv : _taskViewWindows)
 			{
@@ -240,12 +240,12 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 					break;
 				}
 			}
-		}
+		}*/
 
 
 		if (!_throttleTimer->isActive())
 		{
-			_throttleTimer->start(260);
+			_throttleTimer->start(150);
 		}
 
 		break;
