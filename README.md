@@ -9,7 +9,7 @@ Windows 10 Task View eXtension
 ## Prerequisites
 - QT 5.7
 - Visual Studio 2015 + Qt Vs Tools
-- Add an environment variable `QDIR` pointing at ... eg. `C:\Qt\Qt5.7.0\5.7\msvc2015_64`
+- Add an environment variable `QTDIR` pointing at ... eg. `C:\Qt\Qt5.7.0\5.7\msvc2015_64`
 - Add to Path: `%QTDIR%\bin`
 - `Start Menu > VS2015 Cmd Prompt >`, `cd TaskViewX`, `makeTestCert.bat`
 
