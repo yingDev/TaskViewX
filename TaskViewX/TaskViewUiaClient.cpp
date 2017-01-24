@@ -35,8 +35,8 @@ TaskViewUiaClient::TaskViewUiaClient(QObject *parent)
 
 void TaskViewUiaClient::sycTaskViews()
 {
-	if (!IsShowing())
-		return notifyDisappearing();
+	/*if (!IsShowing())
+		return notifyDisappearing();*/
 
 	qDebug() << __FUNCTION__ << endl;
 	/*DWORD explorerPid;
@@ -208,7 +208,11 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 				if (same)
 				{
 					qDebug() << "sender is a TaskView, so ... notifyDisappearing()";
-					notifyDisappearing();
+					//notifyDisappearing();
+					if (!_throttleTimer->isActive())
+					{
+						_throttleTimer->start(100);
+					}
 					break;
 				}
 			}
@@ -217,7 +221,7 @@ HRESULT TaskViewUiaClient::HandleStructureChangedEvent(IUIAutomationElement * pS
 
 		if (!_throttleTimer->isActive())
 		{
-			_throttleTimer->start(150);
+			_throttleTimer->start(50);
 		}
 
 		break;
